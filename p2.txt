@@ -1,0 +1,74 @@
+# // Equivalent code fragment expressed in Java-like syntax
+# int sum(int [] n) {
+#  return /* sum of elements in n[] … */
+# }
+# // In caller
+# sum(B); // B can be a reference to an integer array or null.
+
+.data
+	# suppose the first element in the array denotes the size of the array
+	list:	.word	14, 14, 12, 13, 5, 9, 11, 3, 6, 7, 10, 2, 4, 8, 1
+.text
+
+
+main:
+	sw $fp, 0($sp)	# push the current frame pointer to stack
+	addiu $sp, $sp, -4
+	# Stack: old fp
+	
+	# COMMENT: Simulate the address of B[] at $sp+4
+	la $a0, list
+	sw $a0, 0($sp)	# store address to stack (as a local variable B[])
+	addiu $sp, $sp, -4
+	# Stack: &B[], old fp
+
+	# TODO: Insert code to set up parameters and invoke the function
+	lw $a0, 4($sp)  # load the local variable B[] (which is stored at $sp+4)
+	sw $a0, 0($sp) 	# push it to stack as a parameter (arg 1)
+	addiu $sp, $sp, -4
+	# Stack: arg1, &B[], old fp
+
+	jal sum	# call function sum
+	# After returning from the function call, the return value should
+	# be kept in $a0.
+		
+	li $v0, 1	# print out the result
+	syscall 
+	
+	li $v0, 10	# terminate program
+	syscall 
+
+# TODO: Insert code for the function definition (You can use any
+# approach to compute the sum of the elements)	
+sum:
+	move $fp, $sp	# move frame pointer to the current function, $fp = $sp
+	
+	sw $ra, 0($sp)	# push the return address to stack
+	addiu $sp, $sp, -4
+	# Stack: return address, arg1, &B[], old fp
+	
+	# the parameter is stored in $sp+8
+	lw $s0, 8($sp)	# load the address of the array
+	lw $t1, 0($a0)	# read the size of the array
+	
+	li $t0, 1	# initialize the starting index
+	li $a0, 0	# initialize the sum to be 0, and $a0 is the return value
+	
+sum_loop:
+	bgt $t0, $t1, exit_loop	# go to branch exit_loop if $t0 > $t1
+	
+	addi $s0, $s0, 4	# read the current item
+	lw $t2, 0($s0)
+	
+	add $a0, $a0, $t2
+	
+	addi $t0, $t0, 1
+	j sum_loop
+	
+exit_loop:
+	lw $ra, 4($sp)	# pop return address
+	addiu $sp, $sp, 8	# 8 = Z = 4 * n + 4, n is the number of parameters (n = 1)
+	
+	lw $fp, 8($sp)	# restore the old fp (SP + frame size) (where framesize = 8) (1 local variable B[] in main)
+	jr $ra	# return
+	
