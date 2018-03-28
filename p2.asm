@@ -8,6 +8,7 @@
 .data
 	# suppose the first element in the array denotes the size of the array
 	list:	.word	14, 14, 12, 13, 5, 9, 11, 3, 6, 7, 10, 2, 4, 8, 1
+	exception_msg: .asciiz "Null Pointer Exception\n"
 .text
 
 
@@ -63,6 +64,9 @@ sum:
 	addiu $sp, $sp, -4
 	# Stack: | main $fp , main $ra, &B[] | old $fp
 	
+	# check if argument is null pointer
+	beqz $a0, null_pointer_exception
+	
 	# the argument is stored in $a0
 	la $s0, 0($a0)
 	lw $t1, 0($a0)	# read the size of the array
@@ -92,3 +96,10 @@ exit_loop:
 
 	jr $ra	# return
 	
+null_pointer_exception:
+	la $a0, exception_msg
+	li $v0, 4
+	syscall
+	
+	li $v0, 10	# terminate program
+	syscall 
