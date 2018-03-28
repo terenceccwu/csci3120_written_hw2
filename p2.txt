@@ -12,43 +12,59 @@
 
 
 main:
-	sw $fp, 0($sp)	# push the current frame pointer to stack
+	# "THE FRAME POINTER" (Textbook p.120)
+	# "The old value of FP is saved in memory (in the frame)"
+	sw $fp, 0($sp)
+	# "and the old SP becomes the current frame pointer FP."
+	move $fp, $sp
 	addiu $sp, $sp, -4
-	# Stack: old fp
-	
-	# COMMENT: Simulate the address of B[] at $sp+4
+	# Stack: | old $fp
+
+	# Simulate the address of B[] at $sp+4
 	la $a0, list
 	sw $a0, 0($sp)	# store address to stack (as a local variable B[])
 	addiu $sp, $sp, -4
-	# Stack: &B[], old fp
+	# Stack: &B[] | old $fp
 
+	
 	# TODO: Insert code to set up parameters and invoke the function
-	lw $a0, 4($sp)  # load the local variable B[] (which is stored at $sp+4)
-	sw $a0, 0($sp) 	# push it to stack as a parameter (arg 1)
-	addiu $sp, $sp, -4
-	# Stack: arg1, &B[], old fp
+	lw $a0, 4($sp)  # load the local variable B[] ($sp+4) to $a0
 
-	jal sum	# call function sum
+	# "RETURN ADDRESSES" (Textbook p.123)
+	# "A non-leaf procedure will then have to write it to the stack"
+	sw $ra, 0($sp)
+	addiu $sp, $sp, -4
+	# Stack: old $ra, &B[] | old $fp
+
+	# call function sum
+	jal sum
 	# After returning from the function call, the return value should
 	# be kept in $a0.
+
+	# RESTORE: restore return address from stack
+	lw $ra, 0($sp)
+	addiu $sp, $sp, 4
+	# Stack: &B[] | old $fp
 		
 	li $v0, 1	# print out the result
 	syscall 
-	
+
 	li $v0, 10	# terminate program
 	syscall 
 
 # TODO: Insert code for the function definition (You can use any
 # approach to compute the sum of the elements)	
 sum:
-	move $fp, $sp	# move frame pointer to the current function, $fp = $sp
-	
-	sw $ra, 0($sp)	# push the return address to stack
+	# "THE FRAME POINTER" (Textbook p.120)
+	# "The old value of FP is saved in memory (in the frame)"
+	sw $fp, 0($sp)
+	# "and the old SP becomes the current frame pointer FP."
+	move $fp, $sp
 	addiu $sp, $sp, -4
-	# Stack: return address, arg1, &B[], old fp
+	# Stack: | main $fp , main $ra, &B[] | old $fp
 	
-	# the parameter is stored in $sp+8
-	lw $s0, 8($sp)	# load the address of the array
+	# the argument is stored in $a0
+	la $s0, 0($a0)
 	lw $t1, 0($a0)	# read the size of the array
 	
 	li $t0, 1	# initialize the starting index
@@ -66,9 +82,13 @@ sum_loop:
 	j sum_loop
 	
 exit_loop:
-	lw $ra, 4($sp)	# pop return address
-	addiu $sp, $sp, 8	# 8 = Z = 4 * n + 4, n is the number of parameters (n = 1)
-	
-	lw $fp, 8($sp)	# restore the old fp (SP + frame size) (where framesize = 8) (1 local variable B[] in main)
+	# "THE FRAME POINTER" (Textbook p.120)	
+	# "When f exits, it just copies FP back to SP"
+	move $sp, $fp
+	# "and fetches back the saved FP."
+	lw $fp, 0($sp)
+	addiu $sp, $sp, 4
+	# Stack: main $ra, &B[] | old $fp
+
 	jr $ra	# return
 	
